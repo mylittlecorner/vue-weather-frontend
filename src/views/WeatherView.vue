@@ -1,0 +1,166 @@
+<template>
+  <nav-bar :state="state" />
+  <div id="app" :class="typeof weather.current != 'undefined' && weather.current.temp_c > 16 ? 'warm' : ''">
+    <main>
+      <div class="search-box">
+        <input 
+          type="text" 
+          class="search-bar" 
+          placeholder="Search..."
+          v-model="location"
+          @keypress="fetchWeather"
+        />
+      </div>
+
+      <div class="weather-wrap" v-if="typeof weather.location != 'undefined'">
+
+        <div class="weather-box">
+          <div class="temp">{{ Math.round(weather.current.temp_c) }}°c</div>
+          <div class="location-box">
+          <div class="location">{{ weather.location.name }}, {{ weather.location.country }}</div>
+          <div class="date">{{ dateBuilder() }}</div>
+        </div>
+          <div class="weather">{{ weather.current.condition.text }}</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+import NavBar from '../components/NavBar.vue';
+export default {
+  name: 'app',
+  data () {
+    return {
+      state: true,
+      weather: {},
+      location: ""
+    }
+  },
+  methods: {
+    async fetchWeather (e) {
+      if (e.key == "Enter") {
+        const response = await axios.post('/weather/retrive',JSON.stringify(this.location),{
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer '+localStorage.getItem('token')
+          }
+        })
+          .then(response => {
+            this.state=true;
+            this.weather=response.data;
+          }).catch((error) => {
+              if(error.response.status===401){
+              this.state=false;
+              localStorage.removeItem('token');
+              this.$router.go(0);
+            }
+          });
+      }
+    },
+    setResults (results) {
+      this.weather = results;
+      console.log(this.weather)
+    },
+    dateBuilder () {
+      let d = new Date();
+      let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      let day = days[d.getDay()];
+      let date = d.getDate();
+      let month = months[d.getMonth()];
+      let year = d.getFullYear();
+      return `${day} ${date} ${month} ${year}`;
+    }
+  },
+  components:{NavBar}
+}
+    NavBar
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Bebas Neue';
+}
+#app {
+  background-image: url('/src/assets/cold-bg.jpg');
+  background-size: cover;
+  background-position: bottom;
+  transition: 0.4s;
+}
+#app.warm {
+  background-image: url('/src/assets/warm-bg.jpg');
+}
+main {
+  min-height: 100vh;
+  padding: 25px;
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.75));
+}
+.search-box {
+  width: 100%;
+  margin-bottom: 30px;
+}
+.search-box .search-bar {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  
+  color: #313131;
+  font-size: 20px;
+  appearance: none;
+  border:none;
+  outline: none;
+  background: none;
+  box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: 0.4s;
+}
+.search-box .search-bar:focus {
+  box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.75);
+}
+.location-box .location {
+  color: #FFF;
+  font-size: 32px;
+  font-weight: 500;
+  text-align: center;
+  text-shadow: 1px 3px rgba(0, 0, 0, 0.25);
+}
+.location-box .date {
+  color: #FFF;
+  font-size: 20px;
+  font-weight: 300;
+  font-style: italic;
+  text-align: center;
+}
+.weather-box {
+  text-align: center;
+}
+.weather-box .temp {
+  display: inline-block;
+  padding: 10px 25px;
+  color: #FFF;
+  font-size: 102px;
+  font-weight: 900;
+  text-shadow: 3px 6px rgba(0, 0, 0, 0.25);
+  background-color:rgba(255, 255, 255, 0.25);
+  border-radius: 30px;
+  margin: 30px 0px;
+  box-shadow: 3px 6px rgba(0, 0, 0, 0.25);
+}
+.weather-box .weather {
+  color: #FFF;
+  font-size: 48px;
+  font-weight: 700;
+  font-style: italic;
+  text-shadow: 3px 6px rgba(0, 0, 0, 0.25);
+}
+</style>
