@@ -1,5 +1,5 @@
 <template>
-  <nav-bar :state="state" />
+  <nav-bar :state="state" @state-changed="onStateChange"/>
   <div id="app" :class="typeof weather.current != 'undefined' && weather.current.temp_c > 16 ? 'warm' : ''">
     <main>
       <div class="search-box">
@@ -34,35 +34,37 @@ export default {
   name: 'app',
   data () {
     return {
-      state: true,
+      state: { loginStatus: Boolean, userStatus: String },
       weather: {},
       location: ""
     }
   },
   methods: {
     async fetchWeather (e) {
+      let controller;
       if (e.key == "Enter") {
-        const response = await axios.post('/weather/retrive',JSON.stringify(this.location),{
+          controller="retrive";
+        if(this.state.userStatus==="admin" && this.state.loginStatus==true){
+          controller="update";
+        }
+        const response = await axios.post(`/weather/${controller}`,JSON.stringify(this.location),{
           headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer '+localStorage.getItem('token')
           }
         })
           .then(response => {
-            this.state=true;
+            this.state.loginStatus=true;
             this.weather=response.data;
           }).catch((error) => {
               if(error.response.status===401){
-              this.state=false;
+              this.state.loginStatus=false;
               localStorage.removeItem('token');
-              this.$router.go(0);
             }
           });
       }
-    },
-    setResults (results) {
-      this.weather = results;
-      console.log(this.weather)
+      this.$forceUpdate();
+      console.log(this.state.loginStatus,this.state.userStatus);
     },
     dateBuilder () {
       let d = new Date();
@@ -73,7 +75,12 @@ export default {
       let month = months[d.getMonth()];
       let year = d.getFullYear();
       return `${day} ${date} ${month} ${year}`;
-    }
+    },
+    onStateChange(event){
+      this.state.loginStatus=event.state.loginStatus;
+      this.state.loginStatus=event.state.userStatus;
+      this.$forceUpdate();
+    },
   },
   components:{NavBar}
 }

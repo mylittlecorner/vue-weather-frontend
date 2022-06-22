@@ -1,12 +1,13 @@
 
 <template>
     <div class="topnav">
-        <a class="active" v-if="isSet()==true & local_state==true">Logged In</a>
+        <a class="active" v-if="this.state.loginStatus==true">Logged In</a>
         <a class="active" v-else>Please, Log In</a>
   <div class="login-container">
       <input type="text" placeholder="Username..." v-model="user">
       <input type="password" placeholder="Password..." v-model="password">
-      <button type="submit" @click="login">Login</button>
+      <button type="submit" @click="logout" v-if="this.state.loginStatus==true">Logout</button>
+      <button type="submit" @click="login" v-else>Login</button>
   </div>
 </div>
 </template>
@@ -15,7 +16,7 @@
 import axios from 'axios';
 export default {
     props:{
-        local_state: Boolean,
+        state: { loginStatus: Boolean, userStatus: String},
     },
     name: "NavBar",
     data () {
@@ -25,19 +26,25 @@ export default {
         }
     },
     methods:{
-        async login (e){
+        async login (){
             const response = await axios.post('/login',{
                 Username: this.user,
                 Password: this.password
-            }).then(response =>{ localStorage.setItem('token', response.data);this.$router.go(0);});
+            }).then(response =>{
+               localStorage.setItem('token', response.data);
+               this.state.loginStatus=true;
+               this.state.userStatus=this.user;
+               });
+               this.triggerEmit();
         },
-        isSet(){
-                try{
-                if(localStorage.getItem('token').length>0){
-                        return true;
-                    }
-                }catch{}
-            return false;
+        logout(){
+          localStorage.removeItem('token');
+          this.state.loginStatus=false;
+          this.state.userStatus="";
+          this.triggerEmit();
+        },
+        triggerEmit(){
+          this.$emit('stateChanged',this.state);
         }
     }
 }
