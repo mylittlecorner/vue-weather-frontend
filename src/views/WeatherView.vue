@@ -8,8 +8,17 @@
           class="search-bar" 
           placeholder="Search..."
           v-model="location"
+          autocomplete="on"
           @keypress="fetchWeather"
+          @click="getCityList"
+          @input="filterCity"
+           v-show="state.loginStatus==true"
         />
+        <div v-if="filteredCityList">
+          <ul>
+            <li v-for="filtered in filteredCityList" @click="setCity(filtered)">{{ filtered }}</li>
+          </ul>
+        </div>
       </div>
 
       <div class="weather-wrap" v-if="typeof weather.location != 'undefined'">
@@ -36,10 +45,13 @@ export default {
     return {
       state: { loginStatus: Boolean, userStatus: String },
       weather: {},
-      location: ""
+      location: "",
+      cityList: [],
+      filteredCityList: [],
     }
   },
   methods: {
+
     async fetchWeather (e) {
       let controller;
       if (e.key == "Enter") {
@@ -52,8 +64,7 @@ export default {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer '+localStorage.getItem('token')
           }
-        })
-          .then(response => {
+        }).then(response => {
             this.state.loginStatus=true;
             this.weather=response.data;
           }).catch((error) => {
@@ -64,8 +75,8 @@ export default {
           });
       }
       this.$forceUpdate();
-      console.log(this.state.loginStatus,this.state.userStatus);
     },
+
     dateBuilder () {
       let d = new Date();
       let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -76,11 +87,33 @@ export default {
       let year = d.getFullYear();
       return `${day} ${date} ${month} ${year}`;
     },
+
     onStateChange(event){
       this.state.loginStatus=event.state.loginStatus;
       this.state.loginStatus=event.state.userStatus;
       this.$forceUpdate();
     },
+
+    async getCityList(){
+                    const response = await axios.get('/weather/list',{
+            headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer '+localStorage.getItem('token')
+                  }
+          }).then(response => {
+            this.cityList=response.data;
+          });
+          console.log(this.cityList,this.filteredCityList)
+    },
+
+    filterCity(){
+        this.filteredCityList = this.cityList.filter(location => {
+            return location.toLowerCase().startsWith(this.location.toLowerCase());
+        });
+    },
+    setCity(filtered){
+      this.location=filtered;
+    }
   },
   components:{NavBar}
 }
@@ -88,6 +121,7 @@ export default {
 </script>
 
 <style>
+@import '@/assets/base.css';
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 * {
   margin: 0;
